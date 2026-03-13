@@ -29,7 +29,6 @@ jobs:
         run: |
           # Write tab-separated STATUS<TAB>FILE lines for changed .vi files.
           # STATUS: A=added, D=deleted, M=modified.
-          # Run git diff separately so errors are not masked by grep's exit code.
           git diff --name-status "origin/${{ github.base_ref }}...HEAD" > "${{ github.workspace }}/changed-files.txt"
 
           echo "Changed files:"
