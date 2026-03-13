@@ -30,24 +30,14 @@ jobs:
         run: |
           # Write tab-separated STATUS<TAB>FILE lines for changed .vi files.
           # STATUS: A=added, D=deleted, M=modified.
-          $lines = git diff --name-status "origin/${{ github.base_ref }}...HEAD" |
-            Where-Object { $_ -match '\.vi$' }
+          git diff --name-status "origin/${{ github.base_ref }}...HEAD" > "${{ github.workspace }}/changed-files.txt"|
 
-          Write-Host "Changed VI files:"
-          $lines | ForEach-Object { Write-Host "  $_" }
+          Write-Host "Changed files:"
+          Get-Content "${{ github.workspace }}\changed-files.txt"
 
           # Create a git worktree for the base branch so binary .vi files can be
           # compared safely without manual extraction.
           git worktree add "${{ github.workspace }}\vi-base" "origin/${{ github.base_ref }}"
-
-          # Write the list to a file so the container can read it without
-          # multiline environment-variable encoding issues.
-          if ($null -eq $lines) {
-            New-Item -ItemType File -Path "${{ github.workspace }}\changed-files.txt" -Force | Out-Null
-          } else {
-            $lines | Out-File -FilePath "${{ github.workspace }}\changed-files.txt" `
-              -Encoding utf8NoBOM
-          }
 
       - name: Pull Docker Image from Docker Hub
         run: docker pull nationalinstruments/labview:2026q1-windows
@@ -119,7 +109,7 @@ jobs:
             const pagesUrl = '${{ steps.deploy-pages.outputs.page_url }}';
             const base = pagesUrl.endsWith('/') ? pagesUrl : pagesUrl + '/';
 
-            let body = '### VI Comparison Reports (Windows)\n\n';
+            let body = '### VI Comparison Reports\n\n';
             body += '| VI File | Change | Report |\n|---------|--------|--------|\n';
             for (const { status, file } of entries) {
               const baseName = path.basename(file, '.vi');

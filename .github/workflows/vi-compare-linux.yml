@@ -30,12 +30,9 @@ jobs:
           # Write tab-separated STATUS<TAB>FILE lines for changed .vi files.
           # STATUS: A=added, D=deleted, M=modified.
           # Run git diff separately so errors are not masked by grep's exit code.
-          git diff --name-status "origin/${{ github.base_ref }}...HEAD" \
-            > /tmp/vi-diff-all.txt
-          grep '\.vi$' /tmp/vi-diff-all.txt \
-            > "${{ github.workspace }}/changed-files.txt" || true
+          git diff --name-status "origin/${{ github.base_ref }}...HEAD" > "${{ github.workspace }}/changed-files.txt"
 
-          echo "Changed VI files:"
+          echo "Changed files:"
           cat "${{ github.workspace }}/changed-files.txt"
 
           # Create a git worktree for the base branch so binary .vi files can be
@@ -118,7 +115,7 @@ jobs:
             const pagesUrl = '${{ steps.deploy-pages.outputs.page_url }}';
             const base = pagesUrl.endsWith('/') ? pagesUrl : pagesUrl + '/';
 
-            let body = '### VI Comparison Reports (Linux)\n\n';
+            let body = '### VI Comparison Reports\n\n';
             body += '| VI File | Change | Report |\n|---------|--------|--------|\n';
             for (const { status, file } of entries) {
               const baseName = path.basename(file, '.vi');
