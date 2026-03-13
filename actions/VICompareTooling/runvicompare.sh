@@ -1,7 +1,9 @@
 #!/bin/bash
-# Reads changed .vi files from /workspace/changed-files.txt and generates HTML
-# reports.  Each line of changed-files.txt is a tab-separated pair:
-#   <STATUS>\t<path/to/file.vi>
+# Reads changed files from /workspace/changed-files.txt and generates HTML
+# reports for any file whose content is identified as a LabVIEW VI or LVCC
+# file by inspecting bytes 9-12 for the magic string LVIN or LVCC.
+# Each line of changed-files.txt is a tab-separated pair:
+#   <STATUS>\t<path/to/file>
 # where STATUS is A (added), D (deleted), or M (modified).
 #
 # Modified VIs  → CreateComparisonReport  (base vs head),  *-diff-report.html
@@ -16,6 +18,16 @@ ADDITIONAL_OP_DIR='/workspace/VICompareTooling'
 mkdir -p "$REPORT_DIR"
 mkdir -p "/tmp/natinst"
 echo "1" > /tmp/natinst/LVContainer.txt
+
+# Returns 0 (true) if the file at the given path is a LabVIEW VI or LVCC file,
+# identified by the magic bytes at offset 8 (bytes 9-12): LVIN or LVCC.
+is_vi_file() {
+  local path="$1"
+  local magic
+  [ -f "$path" ] || return 1
+  magic=$(dd if="$path" bs=1 skip=8 count=4 2>/dev/null)
+  [[ "$magic" == "LVIN" || "$magic" == "LVCC" ]]
+}
 
 if [ ! -f "$CHANGED_FILES_FILE" ]; then
   echo "No changed-files.txt found. Exiting."
@@ -33,9 +45,8 @@ while read -r status file; do
   status="$(echo "$status" | tr -d '\r')"
   IFS=$'\t'
   [[ -z "$file" ]] && continue
-  [[ "$file" != *.vi ]] && continue
 
-  BASE_NAME="$(basename "$file" .vi)"
+  BASE_NAME="$(basename "${file%.*}")"
 
   if [[ "$status" == "M" ]]; then
     # ---------- Modified: compare base vs head ----------
@@ -49,6 +60,14 @@ while read -r status file; do
     fi
     if [ ! -f "$VI_BASE" ]; then
       echo "Warning: Base version not found: $VI_BASE, skipping."
+      continue
+    fi
+    if ! is_vi_file "$VI_HEAD"; then
+      echo "Skipping $file: not a LabVIEW VI file."
+      continue
+    fi
+    if ! is_vi_file "$VI_BASE"; then
+      echo "Skipping $file: base version is not a LabVIEW VI file."
       continue
     fi
 
@@ -78,6 +97,10 @@ while read -r status file; do
       echo "Warning: Added VI not found: $VI_PATH, skipping."
       continue
     fi
+    if ! is_vi_file "$VI_PATH"; then
+      echo "Skipping $file: not a LabVIEW VI file."
+      continue
+    fi
 
     echo "Running LabVIEWCLI PrintToSingleFileHtml for added VI: $file"
 
@@ -100,6 +123,10 @@ while read -r status file; do
 
     if [ ! -f "$VI_PATH" ]; then
       echo "Warning: Deleted VI not found in base: $VI_PATH, skipping."
+      continue
+    fi
+    if ! is_vi_file "$VI_PATH"; then
+      echo "Skipping $file: not a LabVIEW VI file."
       continue
     fi
 

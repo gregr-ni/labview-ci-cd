@@ -1,6 +1,8 @@
-# Reads a list of changed .vi files from changed-files.txt (written by the workflow).
-# Each line is a tab-separated pair:  <STATUS>\t<path/to/file.vi>
+# Reads a list of changed files from changed-files.txt (written by the workflow).
+# Each line is a tab-separated pair:  <STATUS>\t<path/to/file>
 # where STATUS is A (added), D (deleted), or M (modified).
+# Files are identified as LabVIEW VIs by inspecting bytes 9-12 for the magic
+# string LVIN or LVCC, rather than relying on file extension.
 #
 # Modified VIs  -> CreateComparisonReport  (base vs head),  *-diff-report.html
 # Added VIs     -> PrintToSingleFileHtml   (head version),  *-print-report.html
@@ -13,6 +15,17 @@ $AdditionalOpDir     = "C:\workspace\VICompareTooling"
 
 New-Item -ItemType Directory -Force -Path $REPORT_DIR | Out-Null
 
+# Returns $true if the file at the given path is a LabVIEW VI or LVCC file,
+# identified by the magic bytes at offset 8 (bytes 9-12): LVIN or LVCC.
+function IsViFile {
+    param([string]$Path)
+    if (-not (Test-Path $Path)) { return $false }
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    if ($bytes.Length -lt 12) { return $false }
+    $magic = [System.Text.Encoding]::ASCII.GetString($bytes, 8, 4)
+    return ($magic -eq 'LVIN' -or $magic -eq 'LVCC')
+}
+
 if (-not (Test-Path $CHANGED_FILES_FILE)) {
     Write-Host "No changed-files.txt found. Exiting."
     exit 0
@@ -20,10 +33,10 @@ if (-not (Test-Path $CHANGED_FILES_FILE)) {
 
 $lines = Get-Content $CHANGED_FILES_FILE |
     ForEach-Object { $_.Trim() } |
-    Where-Object { $_ -match '\t' -and $_ -match '\.vi$' }
+    Where-Object { $_ -match '\t' }
 
 if ($lines.Count -eq 0) {
-    Write-Host "No changed .vi files to process. Exiting."
+    Write-Host "No changed files to process. Exiting."
     exit 0
 }
 
@@ -48,6 +61,14 @@ foreach ($line in $lines) {
         }
         if (-not (Test-Path $VI_BASE)) {
             Write-Host "Warning: Base version not found: $VI_BASE, skipping."
+            continue
+        }
+        if (-not (IsViFile $VI_HEAD)) {
+            Write-Host "Skipping $file`: not a LabVIEW VI file."
+            continue
+        }
+        if (-not (IsViFile $VI_BASE)) {
+            Write-Host "Skipping $file`: base version is not a LabVIEW VI file."
             continue
         }
 
@@ -75,6 +96,10 @@ foreach ($line in $lines) {
             Write-Host "Warning: Added VI not found: $VI_PATH, skipping."
             continue
         }
+        if (-not (IsViFile $VI_PATH)) {
+            Write-Host "Skipping $file`: not a LabVIEW VI file."
+            continue
+        }
 
         Write-Host "Running LabVIEWCLI PrintToSingleFileHtml for added VI: $file"
 
@@ -95,6 +120,10 @@ foreach ($line in $lines) {
 
         if (-not (Test-Path $VI_PATH)) {
             Write-Host "Warning: Deleted VI not found in base: $VI_PATH, skipping."
+            continue
+        }
+        if (-not (IsViFile $VI_PATH)) {
+            Write-Host "Skipping $file`: not a LabVIEW VI file."
             continue
         }
 
