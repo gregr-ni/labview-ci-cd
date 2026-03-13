@@ -33,11 +33,11 @@ jobs:
           git diff --name-status "origin/${{ github.base_ref }}...HEAD" > "${{ github.workspace }}/changed-files.txt"
 
           Write-Host "Changed files:"
-          Get-Content "${{ github.workspace }}\changed-files.txt"
+          Get-Content "${{ github.workspace }}/changed-files.txt"
 
           # Create a git worktree for the base branch so binary .vi files can be
           # compared safely without manual extraction.
-          git worktree add "${{ github.workspace }}\vi-base" "origin/${{ github.base_ref }}"
+          git worktree add "${{ github.workspace }}/vi-base" "origin/${{ github.base_ref }}"
 
       - name: Pull Docker Image from Docker Hub
         run: docker pull nationalinstruments/labview:2026q1-windows
