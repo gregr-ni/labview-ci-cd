@@ -95,10 +95,10 @@ jobs:
             const reportsDir = path.join(process.env.GITHUB_WORKSPACE, 'vi-compare-reports');
 
             function getReportFile(status, file) {
-              const baseName = path.parse(file).name;
+              const name = path.basename(file);
               return status === 'M'
-                ? `${baseName}-diff-report.html`
-                : `${baseName}-print-report.html`;
+                ? `diff-report-${name}.html`
+                : `print-report-${name}.html`;
             }
 
             // Each line is: STATUS\tpath/to/file

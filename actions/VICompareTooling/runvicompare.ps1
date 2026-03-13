@@ -4,9 +4,9 @@
 # Files are identified as LabVIEW VIs by inspecting bytes 9-12 for the magic
 # string LVIN or LVCC, rather than relying on file extension.
 #
-# Modified VIs  -> CreateComparisonReport  (base vs head),  *-diff-report.html
-# Added VIs     -> PrintToSingleFileHtml   (head version),  *-print-report.html
-# Deleted VIs   -> PrintToSingleFileHtml   (base version),  *-print-report.html
+# Modified VIs  -> CreateComparisonReport  (base vs head),  diff-report-*.html
+# Added VIs     -> PrintToSingleFileHtml   (head version),  print-report-*.html
+# Deleted VIs   -> PrintToSingleFileHtml   (base version),  print-report-*.html
 
 $CHANGED_FILES_FILE  = "C:\workspace\changed-files.txt"
 $REPORT_DIR          = "C:\workspace\vi-compare-reports"
@@ -47,13 +47,13 @@ foreach ($line in $lines) {
     $status = $parts[0].Trim()
     $file   = $parts[1].Trim()
 
-    $baseName = [System.IO.Path]::GetFileNameWithoutExtension($file)
+    $baseName = [System.IO.Path]::GetFileName($file)
 
     if ($status -eq "M") {
         # ---------- Modified: compare base vs head ----------
         $VI_BASE    = Join-Path "C:\workspace\vi-base" $file
         $VI_HEAD    = Join-Path "C:\workspace" $file
-        $REPORT_PATH = Join-Path $REPORT_DIR "$baseName-diff-report.html"
+        $REPORT_PATH = Join-Path $REPORT_DIR "diff-report-$baseName.html"
 
         if (-not (Test-Path $VI_HEAD)) {
             Write-Host "Warning: Head version not found: $VI_HEAD, skipping."
@@ -90,7 +90,7 @@ foreach ($line in $lines) {
     } elseif ($status -eq "A") {
         # ---------- Added: print the new VI ----------
         $VI_PATH     = Join-Path "C:\workspace" $file
-        $REPORT_PATH = Join-Path $REPORT_DIR "$baseName-print-report.html"
+        $REPORT_PATH = Join-Path $REPORT_DIR "print-report-$baseName.html"
 
         if (-not (Test-Path $VI_PATH)) {
             Write-Host "Warning: Added VI not found: $VI_PATH, skipping."
@@ -116,7 +116,7 @@ foreach ($line in $lines) {
     } elseif ($status -eq "D") {
         # ---------- Deleted: print the old VI ----------
         $VI_PATH     = Join-Path "C:\workspace\vi-base" $file
-        $REPORT_PATH = Join-Path $REPORT_DIR "$baseName-print-report.html"
+        $REPORT_PATH = Join-Path $REPORT_DIR "print-report-$baseName.html"
 
         if (-not (Test-Path $VI_PATH)) {
             Write-Host "Warning: Deleted VI not found in base: $VI_PATH, skipping."
