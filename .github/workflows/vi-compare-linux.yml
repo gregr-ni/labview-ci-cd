@@ -49,13 +49,6 @@ jobs:
             nationalinstruments/labview:2026q1-linux \
             bash -c "chmod +x /workspace/VICompareTooling/runvicompare.sh && /workspace/VICompareTooling/runvicompare.sh"
 
-      - name: Fix report file permissions
-        if: always()
-        run: |
-          if [ -d "${{ github.workspace }}/vi-compare-reports" ]; then
-            sudo chmod -R a+r "${{ github.workspace }}/vi-compare-reports"
-          fi
-
       - name: Upload reports to GitHub Pages
         id: upload-pages
         if: always() && hashFiles('vi-compare-reports/*.html') != ''

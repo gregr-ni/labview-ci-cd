@@ -134,6 +134,8 @@ while read -r status file; do
 done < "$CHANGED_FILES_FILE"
 IFS="$ORIG_IFS"
 
+chmod -R a+r "$REPORT_DIR"
+
 if [ $FAILED -gt 0 ]; then
   echo "✖ $FAILED file(s) failed. Exiting with error."
   exit 1

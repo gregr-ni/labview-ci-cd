@@ -30,7 +30,7 @@ jobs:
         run: |
           # Write tab-separated STATUS<TAB>FILE lines for changed .vi files.
           # STATUS: A=added, D=deleted, M=modified.
-          git diff --name-status "origin/${{ github.base_ref }}...HEAD" > "${{ github.workspace }}/changed-files.txt"|
+          git diff --name-status "origin/${{ github.base_ref }}...HEAD" > "${{ github.workspace }}/changed-files.txt"
 
           Write-Host "Changed files:"
           Get-Content "${{ github.workspace }}\changed-files.txt"
