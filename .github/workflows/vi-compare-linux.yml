@@ -74,22 +74,23 @@ jobs:
 
       - name: Check GitHub Pages setup
         if: always() && steps.deploy-pages.outcome == 'failure'
-        run: |
-          echo ""
-          echo "=========================================================="
-          echo " GitHub Pages deployment failed — admin setup required"
-          echo "=========================================================="
-          echo ""
-          echo " A repo admin must complete the following one-time setup:"
-          echo ""
-          echo "   1. Go to https://github.com/${{ github.repository }}/settings/pages"
-          echo "   2. Under 'Build and deployment', set Source to 'GitHub Actions'"
-          echo "   3. Click Save"
-          echo ""
-          echo " This setting requires admin access to the repository."
-          echo "=========================================================="
-          echo "::error::GitHub Pages is not configured. A repo admin must go to Settings → Pages → Source → GitHub Actions and click Save. See the step log for details."
-          exit 1
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.info('');
+            core.info('==========================================================');
+            core.info(' GitHub Pages deployment failed — admin setup required');
+            core.info('==========================================================');
+            core.info('');
+            core.info(' A repo admin must complete the following one-time setup:');
+            core.info('');
+            core.info('   1. Go to https://github.com/${{ github.repository }}/settings/pages');
+            core.info('   2. Under \'Build and deployment\', set Source to \'GitHub Actions\'');
+            core.info('   3. Click Save');
+            core.info('');
+            core.info(' This setting requires admin access to the repository.');
+            core.info('==========================================================');
+            core.setFailed('GitHub Pages is not configured. A repo admin must go to Settings → Pages → Source → GitHub Actions and click Save. See the step log for details.');
 
       - name: Post PR Comment with Report Links
         if: always() && steps.deploy-pages.outcome == 'success'
