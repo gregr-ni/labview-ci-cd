@@ -77,7 +77,6 @@ foreach ($line in $lines) {
         # -o overwrites an existing report; -c continues if LabVIEW is already open.
         & LabVIEWCLI `
             -OperationName CreateComparisonReport `
-            -AdditionalOperationDirectory "$AdditionalOpDir" `
             -LabVIEWPath "$LabVIEWPath" `
             -LogToConsole TRUE `
             -vi1 "$VI_BASE" `

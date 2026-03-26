@@ -76,7 +76,6 @@ while read -r status file; do
     # -o overwrites an existing report file; -c continues if LabVIEW is already open.
     LabVIEWCLI \
       -OperationName CreateComparisonReport \
-      -AdditionalOperationDirectory "$ADDITIONAL_OP_DIR" \
       -LabVIEWPath $LABVIEW_PATH \
       -LogToConsole TRUE \
       -vi1 "$VI_BASE" \
