@@ -105,8 +105,8 @@ while read -r status file; do
 
     LabVIEWCLI \
       -OperationName PrintToSingleFileHtml \
-      -AdditionalOperationDirectory "$ADDITIONAL_OP_DIR" \
       -LabVIEWPath $LABVIEW_PATH \
+      -AdditionalOperationDirectory "$ADDITIONAL_OP_DIR" \
       -LogToConsole TRUE \
       -VI "$VI_PATH" \
       -OutputPath "$REPORT_PATH" \
@@ -133,8 +133,8 @@ while read -r status file; do
 
     LabVIEWCLI \
       -OperationName PrintToSingleFileHtml \
-      -AdditionalOperationDirectory "$ADDITIONAL_OP_DIR" \
       -LabVIEWPath $LABVIEW_PATH \
+      -AdditionalOperationDirectory "$ADDITIONAL_OP_DIR" \
       -LogToConsole TRUE \
       -VI "$VI_PATH" \
       -OutputPath "$REPORT_PATH" \

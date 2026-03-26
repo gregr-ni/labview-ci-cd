@@ -104,8 +104,8 @@ foreach ($line in $lines) {
 
         & LabVIEWCLI `
             -OperationName PrintToSingleFileHtml `
-            -AdditionalOperationDirectory "$AdditionalOpDir" `
             -LabVIEWPath "$LabVIEWPath" `
+            -AdditionalOperationDirectory "$AdditionalOpDir" `
             -LogToConsole TRUE `
             -VI "$VI_PATH" `
             -OutputPath "$REPORT_PATH" `
@@ -130,8 +130,8 @@ foreach ($line in $lines) {
 
         & LabVIEWCLI `
             -OperationName PrintToSingleFileHtml `
-            -AdditionalOperationDirectory "$AdditionalOpDir" `
             -LabVIEWPath "$LabVIEWPath" `
+            -AdditionalOperationDirectory "$AdditionalOpDir" `
             -LogToConsole TRUE `
             -VI "$VI_PATH" `
             -OutputPath "$REPORT_PATH" `
