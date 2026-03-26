@@ -58,7 +58,7 @@ jobs:
           docker run --rm `
             -v "${{ github.workspace }}:C:\workspace" `
             nationalinstruments/labview:2026q1-windows `
-            powershell -File C:\workspace\VICompareTooling\runvicompare.ps1
+            powershell -File C:\workspace\actions\VICompareTooling\runvicompare.ps1
 
       - name: Upload reports to GitHub Pages
         id: upload-pages

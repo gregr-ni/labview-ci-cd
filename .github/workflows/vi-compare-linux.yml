@@ -50,7 +50,7 @@ jobs:
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
             nationalinstruments/labview:2026q1-linux \
-            bash -c "chmod +x /workspace/VICompareTooling/runvicompare.sh && /workspace/VICompareTooling/runvicompare.sh"
+            bash -c "chmod +x /workspace/actions/VICompareTooling/runvicompare.sh && /workspace/actions/VICompareTooling/runvicompare.sh"
 
       - name: Fix report file permissions
         if: always()
