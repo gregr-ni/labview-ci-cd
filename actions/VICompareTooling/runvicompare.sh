@@ -13,7 +13,7 @@
 CHANGED_FILES_FILE='/workspace/changed-files.txt'
 REPORT_DIR='/workspace/vi-compare-reports'
 LABVIEW_PATH='/usr/local/natinst/LabVIEW-2026-64/labviewprofull'
-ADDITIONAL_OP_DIR='/workspace/VICompareTooling'
+ADDITIONAL_OP_DIR='/workspace/actions/VICompareTooling'
 
 mkdir -p "$REPORT_DIR"
 mkdir -p "/tmp/natinst"

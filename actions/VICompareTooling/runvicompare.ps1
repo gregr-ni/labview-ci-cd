@@ -11,7 +11,7 @@
 $CHANGED_FILES_FILE  = "C:\workspace\changed-files.txt"
 $REPORT_DIR          = "C:\workspace\vi-compare-reports"
 $LabVIEWPath         = "C:\Program Files (x86)\National Instruments\LabVIEW 2026\LabVIEW.exe"
-$AdditionalOpDir     = "C:\workspace\VICompareTooling"
+$AdditionalOpDir     = "C:\workspace\actions\VICompareTooling"
 
 New-Item -ItemType Directory -Force -Path $REPORT_DIR | Out-Null
 
