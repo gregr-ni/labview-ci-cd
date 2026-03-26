@@ -93,16 +93,29 @@ jobs:
             const changedFilesPath = path.join(process.env.GITHUB_WORKSPACE, 'changed-files.txt');
             if (!fs.existsSync(changedFilesPath)) return;
 
-            // Each line is: STATUS\tpath/to/file.vi
+            const reportsDir = path.join(process.env.GITHUB_WORKSPACE, 'vi-compare-reports');
+
+            function getReportFile(status, file) {
+              const name = path.basename(file);
+              return status === 'M'
+                ? `diff-report-${name}.html`
+                : `print-report-${name}.html`;
+            }
+
+            // Each line is: STATUS\tpath/to/file
             // STATUS: A=added, D=deleted, M=modified
+            // Only include files for which a report was actually generated.
             const entries = fs.readFileSync(changedFilesPath, 'utf8')
               .split('\n')
               .map(l => l.trim())
-              .filter(l => l.includes('\t') && l.endsWith('.vi'))
+              .filter(l => l.includes('\t'))
               .map(l => {
                 const [status, file] = l.split('\t', 2);
                 return { status: status.trim(), file: file.trim() };
-              });
+              })
+              .filter(({ status, file }) =>
+                fs.existsSync(path.join(reportsDir, getReportFile(status, file)))
+              );
 
             if (entries.length === 0) return;
 
@@ -112,11 +125,7 @@ jobs:
             let body = '### VI Comparison Reports\n\n';
             body += '| VI File | Change | Report |\n|---------|--------|--------|\n';
             for (const { status, file } of entries) {
-              const baseName = path.basename(file, '.vi');
-              const isModified = status === 'M';
-              const reportFile = isModified
-                ? `${baseName}-diff-report.html`
-                : `${baseName}-print-report.html`;
+              const reportFile = getReportFile(status, file);
               const changeLabel = status === 'A' ? 'Added'
                                 : status === 'D' ? 'Deleted'
                                 : 'Modified';
