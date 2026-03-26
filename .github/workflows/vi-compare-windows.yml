@@ -30,24 +30,14 @@ jobs:
         run: |
           # Write tab-separated STATUS<TAB>FILE lines for changed .vi files.
           # STATUS: A=added, D=deleted, M=modified.
-          $lines = git diff --name-status "origin/${{ github.base_ref }}...HEAD" |
-            Where-Object { $_ -match '\.vi$' }
+          git diff --name-status "origin/${{ github.base_ref }}...HEAD" > "${{ github.workspace }}/changed-files.txt"
 
-          Write-Host "Changed VI files:"
-          $lines | ForEach-Object { Write-Host "  $_" }
+          Write-Host "Changed files:"
+          Get-Content "${{ github.workspace }}/changed-files.txt"
 
           # Create a git worktree for the base branch so binary .vi files can be
           # compared safely without manual extraction.
-          git worktree add "${{ github.workspace }}\vi-base" "origin/${{ github.base_ref }}"
-
-          # Write the list to a file so the container can read it without
-          # multiline environment-variable encoding issues.
-          if ($null -eq $lines) {
-            New-Item -ItemType File -Path "${{ github.workspace }}\changed-files.txt" -Force | Out-Null
-          } else {
-            $lines | Out-File -FilePath "${{ github.workspace }}\changed-files.txt" `
-              -Encoding utf8NoBOM
-          }
+          git worktree add "${{ github.workspace }}/vi-base" "origin/${{ github.base_ref }}"
 
       - name: Pull Docker Image from Docker Hub
         run: docker pull nationalinstruments/labview:2026q1-windows
@@ -75,23 +65,23 @@ jobs:
 
       - name: Check GitHub Pages setup
         if: always() && steps.deploy-pages.outcome == 'failure'
-        shell: pwsh
-        run: |
-          Write-Host ""
-          Write-Host "=========================================================="
-          Write-Host " GitHub Pages deployment failed — admin setup required"
-          Write-Host "=========================================================="
-          Write-Host ""
-          Write-Host " A repo admin must complete the following one-time setup:"
-          Write-Host ""
-          Write-Host "   1. Go to https://github.com/${{ github.repository }}/settings/pages"
-          Write-Host "   2. Under 'Build and deployment', set Source to 'GitHub Actions'"
-          Write-Host "   3. Click Save"
-          Write-Host ""
-          Write-Host " This setting requires admin access to the repository."
-          Write-Host "=========================================================="
-          Write-Host "::error::GitHub Pages is not configured. A repo admin must go to Settings -> Pages -> Source -> GitHub Actions and click Save. See the step log for details."
-          exit 1
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.info('');
+            core.info('==========================================================');
+            core.info(' GitHub Pages deployment failed — admin setup required');
+            core.info('==========================================================');
+            core.info('');
+            core.info(' A repo admin must complete the following one-time setup:');
+            core.info('');
+            core.info('   1. Go to https://github.com/${{ github.repository }}/settings/pages');
+            core.info('   2. Under \'Build and deployment\', set Source to \'GitHub Actions\'');
+            core.info('   3. Click Save');
+            core.info('');
+            core.info(' This setting requires admin access to the repository.');
+            core.info('==========================================================');
+            core.setFailed('GitHub Pages is not configured. A repo admin must go to Settings → Pages → Source → GitHub Actions and click Save. See the step log for details.');
 
       - name: Post PR Comment with Report Links
         if: always() && steps.deploy-pages.outcome == 'success'
@@ -103,30 +93,39 @@ jobs:
             const changedFilesPath = path.join(process.env.GITHUB_WORKSPACE, 'changed-files.txt');
             if (!fs.existsSync(changedFilesPath)) return;
 
-            // Each line is: STATUS\tpath/to/file.vi
+            const reportsDir = path.join(process.env.GITHUB_WORKSPACE, 'vi-compare-reports');
+
+            function getReportFile(status, file) {
+              const name = path.basename(file);
+              return status === 'M'
+                ? `diff-report-${name}.html`
+                : `print-report-${name}.html`;
+            }
+
+            // Each line is: STATUS\tpath/to/file
             // STATUS: A=added, D=deleted, M=modified
+            // Only include files for which a report was actually generated.
             const entries = fs.readFileSync(changedFilesPath, 'utf8')
               .split('\n')
               .map(l => l.trim())
-              .filter(l => l.includes('\t') && l.endsWith('.vi'))
+              .filter(l => l.includes('\t'))
               .map(l => {
                 const [status, file] = l.split('\t', 2);
                 return { status: status.trim(), file: file.trim() };
-              });
+              })
+              .filter(({ status, file }) =>
+                fs.existsSync(path.join(reportsDir, getReportFile(status, file)))
+              );
 
             if (entries.length === 0) return;
 
             const pagesUrl = '${{ steps.deploy-pages.outputs.page_url }}';
             const base = pagesUrl.endsWith('/') ? pagesUrl : pagesUrl + '/';
 
-            let body = '### VI Comparison Reports (Windows)\n\n';
+            let body = '### VI Comparison Reports\n\n';
             body += '| VI File | Change | Report |\n|---------|--------|--------|\n';
             for (const { status, file } of entries) {
-              const baseName = path.basename(file, '.vi');
-              const isModified = status === 'M';
-              const reportFile = isModified
-                ? `${baseName}-diff-report.html`
-                : `${baseName}-print-report.html`;
+              const reportFile = getReportFile(status, file);
               const changeLabel = status === 'A' ? 'Added'
                                 : status === 'D' ? 'Deleted'
                                 : 'Modified';
