@@ -1,0 +1,140 @@
+name: VI Compare (Windows)
+
+# Prerequisite (one-time, requires admin):
+#   Go to Settings → Pages → Build and deployment → Source → GitHub Actions → Save.
+# Without this the "Deploy to GitHub Pages" step will fail with a clear error message.
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  run-vi-compare-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute Changed Files and Prepare Base Versions
+        shell: pwsh
+        run: |
+          # Write tab-separated STATUS<TAB>FILE lines for changed .vi files.
+          # STATUS: A=added, D=deleted, M=modified.
+          git diff --name-status "origin/${{ github.base_ref }}...HEAD" > "${{ github.workspace }}/changed-files.txt"
+
+          Write-Host "Changed files:"
+          Get-Content "${{ github.workspace }}/changed-files.txt"
+
+          # Create a git worktree for the base branch so binary .vi files can be
+          # compared safely without manual extraction.
+          git worktree add "${{ github.workspace }}/vi-base" "origin/${{ github.base_ref }}"
+
+      - name: Pull Docker Image from Docker Hub
+        run: docker pull nationalinstruments/labview:2026q1-windows
+
+      - name: Run CreateComparisonReport on Changed Files
+        shell: pwsh
+        run: |
+          docker run --rm `
+            -v "${{ github.workspace }}:C:\workspace" `
+            nationalinstruments/labview:2026q1-windows `
+            powershell -File C:\workspace\actions\VICompareTooling\runvicompare.ps1
+
+      - name: Upload reports to GitHub Pages
+        id: upload-pages
+        if: always() && hashFiles('vi-compare-reports/*.html') != ''
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: vi-compare-reports/
+
+      - name: Deploy to GitHub Pages
+        id: deploy-pages
+        if: always() && steps.upload-pages.outcome == 'success'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Check GitHub Pages setup
+        if: always() && steps.deploy-pages.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.info('');
+            core.info('==========================================================');
+            core.info(' GitHub Pages deployment failed — admin setup required');
+            core.info('==========================================================');
+            core.info('');
+            core.info(' A repo admin must complete the following one-time setup:');
+            core.info('');
+            core.info('   1. Go to https://github.com/${{ github.repository }}/settings/pages');
+            core.info('   2. Under \'Build and deployment\', set Source to \'GitHub Actions\'');
+            core.info('   3. Click Save');
+            core.info('');
+            core.info(' This setting requires admin access to the repository.');
+            core.info('==========================================================');
+            core.setFailed('GitHub Pages is not configured. A repo admin must go to Settings → Pages → Source → GitHub Actions and click Save. See the step log for details.');
+
+      - name: Post PR Comment with Report Links
+        if: always() && steps.deploy-pages.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const changedFilesPath = path.join(process.env.GITHUB_WORKSPACE, 'changed-files.txt');
+            if (!fs.existsSync(changedFilesPath)) return;
+
+            const reportsDir = path.join(process.env.GITHUB_WORKSPACE, 'vi-compare-reports');
+
+            function getReportFile(status, file) {
+              const name = path.basename(file);
+              return status === 'M'
+                ? `diff-report-${name}.html`
+                : `print-report-${name}.html`;
+            }
+
+            // Each line is: STATUS\tpath/to/file
+            // STATUS: A=added, D=deleted, M=modified
+            // Only include files for which a report was actually generated.
+            const entries = fs.readFileSync(changedFilesPath, 'utf8')
+              .split('\n')
+              .map(l => l.trim())
+              .filter(l => l.includes('\t'))
+              .map(l => {
+                const [status, file] = l.split('\t', 2);
+                return { status: status.trim(), file: file.trim() };
+              })
+              .filter(({ status, file }) =>
+                fs.existsSync(path.join(reportsDir, getReportFile(status, file)))
+              );
+
+            if (entries.length === 0) return;
+
+            const pagesUrl = '${{ steps.deploy-pages.outputs.page_url }}';
+            const base = pagesUrl.endsWith('/') ? pagesUrl : pagesUrl + '/';
+
+            let body = '### VI Comparison Reports\n\n';
+            body += '| VI File | Change | Report |\n|---------|--------|--------|\n';
+            for (const { status, file } of entries) {
+              const reportFile = getReportFile(status, file);
+              const changeLabel = status === 'A' ? 'Added'
+                                : status === 'D' ? 'Deleted'
+                                : 'Modified';
+              body += `| \`${file}\` | ${changeLabel} | [${reportFile}](${base}${encodeURIComponent(reportFile)}) |\n`;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body
+            });
