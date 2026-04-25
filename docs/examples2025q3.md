@@ -1,5 +1,8 @@
-# Example Usages of LabVIEW Container (2025 Q3)
-## Example Usage: LabVIEWCLI
+# Example Usages of LabVIEW Containers (2025 Q3)
+
+> Examples for LabVIEW 2025 Q3 Linux containers — LabVIEWCLI operations, Docker entrypoints, volume mounts, and CI/CD integration.
+
+## LabVIEWCLI Operations
 ### LabVIEWCLI: Run VI Analyzer Tests on VIs
 Run Static code analysis on VIs using VI Analyzer Toolkit
 
@@ -90,31 +93,10 @@ Let's mount a local directory into the container and see the contents of a text 
 ## Example Usage: Integration with CI/CD
 The combination of the above usages along with automation tools like GitHub actions, Jenkins etc can unlock the true potential of LabVIEW in CI/CD Environments.
 
-Let's look at an example of integrating LabVIEW Container into a GitHub action. All the neccessary files are present at **{repo-root}/examples/integration-into-cicd**
+For detailed and up-to-date CI/CD examples (including workflows, helper scripts, and how to try it yourself), see the [CI/CD Examples](./cicd-examples.md) guide.
 
-### Testing Script
-A script designed to run LabVIEWCLI to perform `MassCompile` and `RunVIAnalyzer` operations on a set of Test-VIs.
-
-The script is located here: [runlabview.sh](../examples/integration-into-cicd/runlabview.sh)
-
-The job of the script is to:
-1. Run LabVIEWCLI MassCompile Operation
-2. Run LabVIEWCLI VI Analyzer Operation
-3. Exit with error is any of the above operation fail.
-
-### GitHub Action
-The configuration file for example GitHub Action is located here at: [labview-container-check.yml](../.github/workflows/labview-container-check.yml)
-
-The action does the following:
-1. Login into GitHub Container Registry
-2. Pull in the image `labview:2025q3-linux`
-3. Mount the repository into the container
-4. Run the script `runlabview.sh` as container's entrypoint.
-
-The action is set to be triggered when any pull request is created, updated or reopened.
-
-### Running the GitHub Action
-A testing Pull Request has been created that demonstrates the use of the script `runlabview.sh` and the GitHub Action to run LabVIEWCLI inside a container.
+### Historical Reference
+A testing Pull Request was created that demonstrates the use of LabVIEWCLI scripts and GitHub Actions to run operations inside a container.
 
 Link to the Pull Request: [Integration into CI/CD](https://github.com/ni/labview-for-containers/pull/8)
 

@@ -2,10 +2,9 @@ param(
     [string]$WorkspaceRoot = "C:\workspace"
 )
 
-$ConfigFile    = Join-Path $WorkspaceRoot "examples\integration-into-cicd\Test-VIs\viaPassCase.viancfg"
+$ConfigFile    = Join-Path $WorkspaceRoot "examples\cicd-examples\Test-VIs\via-configs\via-config-pass.viancfg"
 $LabVIEWPath   = "C:\Program Files\National Instruments\LabVIEW 2026\LabVIEW.exe"
 $ReportPath    = "C:\ContainerExamples\Results.txt"
-$MassCompileDir = Join-Path $WorkspaceRoot "examples\integration-into-cicd\Test-VIs"
 
 # Verify that the configuration file exists.
 if (-not (Test-Path -Path $ConfigFile)) {
@@ -18,20 +17,6 @@ $reportDir = Split-Path -Path $ReportPath -Parent
 if (-not (Test-Path -Path $reportDir)) {
     New-Item -ItemType Directory -Path $reportDir -Force | Out-Null
 }
-
-Write-Host "Running LabVIEWCLI MassCompile with the following parameters:" -ForegroundColor Cyan
-Write-Host "DirectoryToCompile: $MassCompileDir"
-
-& LabVIEWCLI `
-    -LogToConsole TRUE `
-    -OperationName MassCompile `
-    -DirectoryToCompile "$MassCompileDir" `
-    -LabVIEWPath "$LabVIEWPath" `
-    -Headless
-
-Write-Host ""; Write-Host "Done running MassCompile operation" -ForegroundColor Green
-Write-Host "########################################################################################"
-Write-Host ""
 
 Write-Host "Running LabVIEWCLI VI Analyzer with the following parameters:" -ForegroundColor Cyan
 Write-Host "ConfigPath: $ConfigFile"

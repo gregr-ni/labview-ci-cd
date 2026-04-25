@@ -1,32 +1,16 @@
 #!/bin/bash
 set -e
 
-CONFIG_FILE='/workspace/examples/integration-into-cicd/Test-VIs/viaPassCase.viancfg'
+CONFIG_FILE='/workspace/examples/cicd-examples/Test-VIs/via-configs/via-config-pass.viancfg'
 LV_YEAR="${LV_YEAR:-2026}"
 LABVIEW_PATH="/usr/local/natinst/LabVIEW-${LV_YEAR}-64/labviewprofull"
 REPORT_PATH='/usr/local/natinst/ContainerExamples/Results.txt'
-MASSCOMPILE_DIR='/workspace/examples/integration-into-cicd/Test-VIs'
 
 # Verify that the configuration file exists.
 if [ ! -f "$CONFIG_FILE" ]; then
   echo "Error: Configuration file not found at $CONFIG_FILE, exiting...!"
   exit 1
 fi
-
-
-echo "Running LabVIEWCLI MassCompile with following parameters:"
-echo "DirectorytoCompile: $MASSCOMPILE_DIR"
-
-LabVIEWCLI -LogToConsole TRUE \
--OperationName MassCompile \
--DirectoryToCompile $MASSCOMPILE_DIR \
--LabVIEWPath $LABVIEW_PATH \
--Headless
-
-echo " "
-echo "Done Running Masscompile Operation"
-echo "########################################################################################"
-echo " "
 
 echo "Running LabVIEWCLI VIAnalyzer with the following parameters:"
 echo "ConfigPath: $CONFIG_FILE"
@@ -47,12 +31,12 @@ echo " "
 echo "########################################################################################"
 cat "$REPORT_PATH"
 
-# 1) Extract the number from the report file, anchor to “Failed Tests”
+# 1) Extract the number from the report file, anchor to "Failed Tests"
 FAILED_COUNT=$(
   sed -n 's/^Failed Tests[[:space:]]*\([0-9]\+\)$/\1/p' "$REPORT_PATH"
 )
 
-# 2) Default to zero if it didn’t match
+# 2) Default to zero if it didn't match
 : "${FAILED_COUNT:=0}"
 
 # 3) Sanity-check numeric
