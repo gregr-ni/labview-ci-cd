@@ -1,0 +1,88 @@
+name: VIDiff Report - Linux Container
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - '**/*.vi'
+
+permissions:
+  contents: read
+
+jobs:
+  run-vidiff:
+    name: Run VIDiff on changed VIs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          path: pr
+
+      - name: Checkout base branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Detect changed VI files
+        id: changed-vis
+        run: |
+          cd pr
+          CHANGED_VIS=$(git diff --name-only --diff-filter=ACMR ${{ github.event.pull_request.base.sha }} ${{ github.sha }} -- '*.vi' || true)
+          if [ -z "$CHANGED_VIS" ]; then
+            echo "No .vi files changed."
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Changed VI files:"
+            echo "$CHANGED_VIS"
+            echo "vi_files<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$CHANGED_VIS" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Pull LabVIEW container image
+        if: steps.changed-vis.outputs.has_changes == 'true'
+        run: docker pull nationalinstruments/labview:latest-linux
+
+      - name: Run VIDiff
+        if: steps.changed-vis.outputs.has_changes == 'true'
+        run: |
+          VI_FILES="${{ steps.changed-vis.outputs.vi_files }}"
+          echo "$VI_FILES" | while IFS= read -r vi; do
+            [ -z "$vi" ] && continue
+            echo "::group::Running VIDiff for $vi"
+            docker run --rm \
+              -v "${{ github.workspace }}/pr:/workspace" \
+              -v "${{ github.workspace }}/base:/workspace-base" \
+              nationalinstruments/labview:latest-linux \
+              bash -c "cd /workspace/examples/cicd-examples/helper-scripts/vidiff && chmod +x vidiff.sh && ./vidiff.sh '$vi'"
+            echo "::endgroup::"
+          done
+
+      - name: Upload VIDiff reports
+        if: steps.changed-vis.outputs.has_changes == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vidiff-report-linux
+          path: ${{ github.workspace }}/pr/vidiff-reports/
+
+      - name: Save metadata
+        if: steps.changed-vis.outputs.has_changes == 'true'
+        run: |
+          mkdir -p metadata
+          echo "${{ github.event.pull_request.number }}" > metadata/pr_number
+          echo "linux" > metadata/platform
+          echo "${{ steps.changed-vis.outputs.vi_files }}" > metadata/vi_files
+
+      - name: Upload metadata
+        if: steps.changed-vis.outputs.has_changes == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vidiff-metadata-linux
+          path: metadata/
