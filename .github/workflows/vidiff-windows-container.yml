@@ -67,7 +67,7 @@ jobs:
             Write-Host "::endgroup::"
           }
 
-      - name: Upload VIDiff reports
+      - name: Verify VIDiff reports were generated
         if: steps.changed-vis.outputs.has_changes == 'true'
         shell: pwsh
         run: |
@@ -77,11 +77,18 @@ jobs:
           if (Test-Path $reportDir) {
             Write-Host "Contents of ${reportDir}:"
             Get-ChildItem -Path $reportDir -Recurse | Select-Object FullName, Length
+            $htmlCount = (Get-ChildItem -Path $reportDir -Recurse -Filter "*.html" | Measure-Object).Count
+            Write-Host "HTML report count: $htmlCount"
+            if ($htmlCount -eq 0) {
+              Write-Error "No HTML reports were generated. VIDiff may have failed silently."
+              exit 1
+            }
           } else {
-            Write-Host "Expected report directory does not exist."
+            Write-Host "VIDiff report directories discovered under PR checkout:"
+            Get-ChildItem -Path (Join-Path "${{ github.workspace }}" "pr") -Directory -Recurse -Filter "vidiff-reports" | Select-Object FullName
+            Write-Error "Expected report directory does not exist: $reportDir"
+            exit 1
           }
-          Write-Host "VIDiff report directories discovered under PR checkout:"
-          Get-ChildItem -Path (Join-Path "${{ github.workspace }}" "pr") -Directory -Recurse -Filter "vidiff-reports" | Select-Object FullName
 
       - name: Upload VIDiff reports artifact
         if: steps.changed-vis.outputs.has_changes == 'true'
