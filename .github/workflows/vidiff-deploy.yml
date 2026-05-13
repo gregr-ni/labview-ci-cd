@@ -81,7 +81,7 @@ jobs:
               fname=$(basename "$f")
               [ "$fname" = "index.html" ] && continue
               viname="${fname%.html}"
-              encoded=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$fname'))")
+              encoded=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "$fname")
               echo "<li><a href=\"${encoded}\">${viname}</a></li>"
             done
             echo '</ul></body></html>'
@@ -120,7 +120,9 @@ jobs:
             body += `| VI | Report |\n|---|---|\n`;
             for (const report of reports) {
               const displayName = report.replace('.html', '');
-              body += `| \`${displayName}\` | [View Report](${baseUrl}/${encodeURIComponent(report)}) |\n`;
+              // encodeURIComponent does not encode ( and ), which breaks Markdown link syntax
+              const encodedReport = encodeURIComponent(report).replace(/\(/g, '%28').replace(/\)/g, '%29');
+              body += `| \`${displayName}\` | [View Report](${baseUrl}/${encodedReport}) |\n`;
             }
             body += `\n[📄 All Reports](${baseUrl}/index.html)`;
 
